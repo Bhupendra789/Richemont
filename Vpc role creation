@@ -1,0 +1,180 @@
+User VPC-SC rules
+
+
+
+By Thibault NOTARGIACOMO
+
+3 min
+
+16
+
+Add a reaction
+IP filtering - Access level
+Permissions - VPC SC rules
+Introduction
+Scenario 1: permissive version
+Pros
+Cons
+Scenario 2: restrictive version (selected)
+Pros
+Cons
+Scenario 3: permissive version for BQ + more fine grained
+External links
+
+Cloud security documentation, with details on network use from user perspective: https://richemont.atlassian.net/wiki/display/ICSCP/GCP+-+VPC+SCs+implementation
+
+Initial documentation of SIPA (check for the previous link for more updated info about the network settings): 
+VPC service control
+ 
+
+IP filtering - Access level
+Based on rules mentionned here 
+VPC service control
+  and Access Level should be defined for all users to be attached to user-based access rules in all VPC-SC perimeters
+
+Sample from https://gitlab.richemont.com/scm_project/ric/dataplatforms_datalake/dataplatform_vpc_sc_exception/-/blob/main/rule_group_example/AccessLevel_name1.yml
+
+
+
+description: "Access level for XYZ use case to restrict access to BigQuery."
+# (Optional) - Conditions that must be met for the access level to apply
+conditions:
+  - ip_subnetworks:
+      - 195.234.224.54/32 #      (vZEN 1 DTC)                 only for DR    
+      - 195.234.224.55/32  #    (vZEN 2 DTC)                 only for DR 
+      - 3.127.0.95/32             #   (vZEN 1 AWS)                vzproxy-euc1.eu.aws.rccad.net:80
+      - 3.127.15.58/32           #   (vZEN 2 AWS)                vzproxy-euc1.eu.aws.rccad.net:80
+      - 218.97.16.87/32           # (vZEN SH5 CN)             vzproxy-shaec.cn.rccad.net:80
+      - 116.246.25.210/32      # (vZEN ICC CN)               vzproxy-shaic.cn.rccad.net:80
+      # SIPA APE
+      - 16.162.140.219/32
+      - 16.162.195.92/32
+      - 18.163.211.201/32
+      # SIPA EUC1/32
+      - 3.125.14.160/32
+      - 18.196.4.194/32
+      - 18.158.50.225/32
+      # SIPA USE1/32
+      - 35.169.63.130/32
+      - 35.153.253.150/32
+      - 44.214.204.220/32
+    regions:
+      - EU
+Please note, that at network level, some request will actually come from internal richemont private ips, such as in this rule:
+
+image (22).png
+ 
+
+Permissions - VPC SC rules
+Introduction
+Apart from attaching an access level to a rule, the content of the rule itself will allow to limit user permission on a scope of ressources (projects) and permissions. See for instance this sample: https://gitlab.richemont.com/scm_project/ric/dataplatforms_datalake/dataplatform_vpc_sc_exception/-/blob/main/rule_group_example/gcp-dl-dataops-engineers@richemont.com_egress.yml
+
+
+
+# ======================================================================
+# USE CASE DESCRIPTION
+# - Describe why this access is necessary to ease approval by GroupSec 
+# ======================================================================
+# egress for gcp-dl-dataops-engineers@richemont.com
+from:
+  identities:
+    - group:gcp-dl-dataops-engineers@richemont.com
+  sources:
+    - accessLevel: accessPolicies/id/accessLevels/name1
+    - accessLevel: accessPolicies/id/accessLevels/name2
+to:
+  operations:
+    - service_name: bigquery.googleapis.com
+      permission_selectors:
+      - bigquery.datasets.create
+      - bigquery.tables.create
+      - bigquery.tables.update
+      - bigquery.tables.updateData
+  resources:
+    - projects/362100686259 # ric-eu-dl-ops-dev-nprd
+ 
+
+Scenario 1: permissive version
+In this version, the idea would be to apply restriction only at source IP level, IE, apart from accessLevel described in section #### the operations and ressources would be wildcard such as:
+
+
+
+from:
+  identities:
+    - *
+  sources:
+    - accessLevel: accessPolicies/id/accessLevels/SipaAccess
+to:
+  operations:
+    - "*"
+  resources:
+    - "*"
+Pros
+No need to define and maintain a complex mapping of users → groups → group permissions
+
+No complex interaction between IAM and VPC-SC, ie both feature become independant from each other
+
+Same rule across ALL perimeters (50+ perimeters in all richemont)
+
+Cons
+Access restriction solely relies on network, ie use of zscaler
+
+ 
+
+Scenario 2: restrictive version (selected)
+In this version, we should define a set of “user profile" with a set of permissions. So that everytime a maison is onboarded, we assign all its users to a group that matches one of the maturity profile defined in this ppt and this excel for APIs
+
+Apis
+
+Starter
+
+Explorer
+
+Player
+
+Scaler
+
+Master
+
+Bigquery
+
+
+Cloud Storage
+
+Equivalent of roles/storage.objectUser
+
+Cloud Composer
+
+Equivalent of roles/composer.user
+
+Equivalent of roles/composer.user
+
+Equivalent of roles/composer.user
+
+See Data Platform Service Catalog (1).xlsx catalog_analytics (1).pdf 
+
+See an example here (there might definitely be more than 1 rule for a given maison)
+
+
+
+# ======================================================================
+# USE CASE DESCRIPTION
+# - Describe why this access is necessary to ease approval by GroupSec 
+# ======================================================================
+# egress for gcp-dl-dataops-engineers@richemont.com
+from:
+  identities:
+    - group:gcp-dl-dataops-engineers@richemont.com
+  sources:
+    - accessLevel: accessPolicies/id/accessLevels/name1
+    - accessLevel: accessPolicies/id/accessLevels/name2
+to:
+  operations:
+    - service_name: bigquery.googleapis.com
+      permission_selectors:
+      - bigquery.datasets.create
+      - bigquery.tables.create
+      - bigquery.tables.update
+      - bigquery.tables.updateData
+  resources:
+    - projects/362100686259 # ric-eu-dl-ops-dev-nprd
