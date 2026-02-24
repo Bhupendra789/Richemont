@@ -1,0 +1,29 @@
+# ======================================================================
+# USE CASE DESCRIPTION
+# Internal service account used to run ingestion workflows
+# Project technical owner: dominik.heinz@richemont.com
+# ======================================================================
+
+# egress for sa-node-pool-composer-63dt@ric-uat-central-ops-044.iam.gserviceaccount.com
+from:
+  identities:
+    - serviceAccount:sa-node-pool-composer-63dt@ric-uat-central-ops-044.iam.gserviceaccount.com
+to:
+  operations:
+    - service_name: bigquery.googleapis.com
+      method_selectors:
+        - "*"
+    - service_name: bigquery.googleapis.com
+      method_selectors:
+        - "*"
+    - service_name: secretmanager.googleapis.com
+      method_selectors:
+        - "*"
+    - service_name: storage.googleapis.com
+      method_selectors:
+        - "*"
+  resources:
+    - projects/1011434374459 # car-eu-dataoffice-sco-nprd
+    - projects/194857032446 # ric-eu-dl-ops-nprd
+    - projects/772831700717 # ric-eu-gdo-agent42-nprd
+    - projects/777773412407 # ric-uat-central-ops-044
