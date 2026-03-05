@@ -1,0 +1,84 @@
+# Default pipeline
+
+build_job:
+  stage: .pre
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: never
+  script:
+    - echo "Default Pipeline Config"
+
+stages:
+  - code-promotion
+  - content-promotion
+  - spectacles-validation
+  - validate-prd
+  - validate-uat
+  - validate-dev
+
+
+
+
+include:
+  - project: 'scm_project/looker/admin_richemont/looker_ci_templates'
+    ref: 'master'
+    file: 'templates/deploy_to_looker_template.yml'
+    rules:
+      - if: $CI_PIPELINE_SOURCE == "web"
+  - project: 'scm_project/looker/admin_richemont/looker_ci_templates'
+    ref: 'master'
+    file: 'templates/move_dashboards_template.yml'
+    rules:
+      - if: $CI_PIPELINE_SOURCE == "web"
+  - project: 'scm_project/looker/admin_richemont/looker_ci_templates'
+    ref: 'master'
+    file: 'templates/spectacles_validator.yml'
+    rules:
+      - if: $CI_PIPELINE_SOURCE == "web"
+  - project: 'scm_project/looker/admin_richemont/looker_ci_templates'
+    ref: 'master'
+    file: 'templates/spectacles_validator_merge_request.yml'
+    rules:
+      - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+
+variables:
+  # Adding pipeline-level variables to simulate GitLab's workflow_dispatch inputs
+  LOOKER_PROJECT_NAME: "vac_global"
+  LOOKER_ENVIRONMENT:
+    description: 'REQUIRED FOR CODE PROMOTION AND SPECTACLES VALIDATION: The URL of the Looker instance to promote the code'
+    value: 'PRD'
+    options:
+      - 'PRD'
+  COMMIT_TAG:
+    description: 'REQUIRED FOR CODE PROMOTION: The commit tag that needs to be deployed/promoted'
+    value: ''
+  SOURCE_DASHBOARD_ID:
+    description: 'REQUIRED FOR CONTENT PROMOTION: The ID of the dashboard to be copied'
+    value: ''
+  SOURCE_INSTANCE_ENV:
+    description: 'REQUIRED FOR CONTENT PROMOTION: The environment of the source instance'
+    value: 'PRD'  # default value
+    options:
+      - 'PRD'
+  DESTINATION_FOLDER_ID:
+    description: 'REQUIRED FOR CONTENT PROMOTION: The ID of the folder to which the dashboard will be copied'
+    value: ''
+  DESTINATION_INSTANCE_ENV:
+    description: 'REQUIRED FOR CONTENT PROMOTION: The environment of the destination instance'
+    value: 'PRD'  # default value
+    options:
+      - 'PRD'
+  GZR_VERSION:
+    description: 'REQUIRED FOR CONTENT PROMOTION: Version of gazer'
+    value: '0.3.18'  # default value
+    options:
+      - '0.2.60'
+      - '0.3.13'
+      - '0.3.16'
+      - '0.3.18'
+  GIT_BRANCH:
+    description: "REQUIRED FOR SPECTACLES VALIDATION: The name of the Git branch to be validated."
+  EXPLORES:
+    value: "*/*"
+    description: "REQUIRED FOR SPECTACLES VALIDATION: The comma separated explores to be validated. Syntax - model_name/explore_name"
